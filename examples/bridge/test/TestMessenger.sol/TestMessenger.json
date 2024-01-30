@@ -1,0 +1,151 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "TestMessenger",
+  "sourceName": "contracts/test/TestMessenger.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "Sent",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "getTransactionCost",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isHasMessage",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "message",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "v1v2",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "r1",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "s1",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "r2",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "s2",
+          "type": "bytes32"
+        }
+      ],
+      "name": "receiveMessage",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "receivedMessages",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "sendMessage",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "sentMessagesBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "isHasMessage_",
+          "type": "bool"
+        }
+      ],
+      "name": "setIsHasMessage",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60806040526000805460ff1916905534801561001a57600080fd5b5061025f8061002a6000396000f3fe6080604052600436106100705760003560e01c8063d8de85031161004e578063d8de8503146100fa578063e12c9ca81461011d578063ea3fdbd814610130578063f69f8151146100da57600080fd5b806318b5130814610075578063286cf779146100aa57806395b70182146100da575b600080fd5b34801561008157600080fd5b506100976100903660046101a4565b506103e890565b6040519081526020015b60405180910390f35b3480156100b657600080fd5b506100d86100c53660046101bd565b6000805460ff1916911515919091179055565b005b3480156100e657600080fd5b506100976100f53660046101a4565b61015a565b34801561010657600080fd5b506100d86101153660046101e6565b505050505050565b6100d861012b3660046101a4565b610178565b34801561013c57600080fd5b5060005461014a9060ff1681565b60405190151581526020016100a1565b6000805460ff1661016c57600061016f565b60015b60ff1692915050565b6040517f407310595001f40cc5d78b385eeeb8b69fa22f4c4df5df2d85d0469a7e227c8d90600090a150565b6000602082840312156101b657600080fd5b5035919050565b6000602082840312156101cf57600080fd5b813580151581146101df57600080fd5b9392505050565b60008060008060008060c087890312156101ff57600080fd5b505084359660208601359650604086013595606081013595506080810135945060a001359250905056fea2646970667358221220dd79c71b876d14f0ee83360db9bcdbe87125ea0648946fedc60cd85dad7a06df64736f6c63430008120033",
+  "deployedBytecode": "0x6080604052600436106100705760003560e01c8063d8de85031161004e578063d8de8503146100fa578063e12c9ca81461011d578063ea3fdbd814610130578063f69f8151146100da57600080fd5b806318b5130814610075578063286cf779146100aa57806395b70182146100da575b600080fd5b34801561008157600080fd5b506100976100903660046101a4565b506103e890565b6040519081526020015b60405180910390f35b3480156100b657600080fd5b506100d86100c53660046101bd565b6000805460ff1916911515919091179055565b005b3480156100e657600080fd5b506100976100f53660046101a4565b61015a565b34801561010657600080fd5b506100d86101153660046101e6565b505050505050565b6100d861012b3660046101a4565b610178565b34801561013c57600080fd5b5060005461014a9060ff1681565b60405190151581526020016100a1565b6000805460ff1661016c57600061016f565b60015b60ff1692915050565b6040517f407310595001f40cc5d78b385eeeb8b69fa22f4c4df5df2d85d0469a7e227c8d90600090a150565b6000602082840312156101b657600080fd5b5035919050565b6000602082840312156101cf57600080fd5b813580151581146101df57600080fd5b9392505050565b60008060008060008060c087890312156101ff57600080fd5b505084359660208601359650604086013595606081013595506080810135945060a001359250905056fea2646970667358221220dd79c71b876d14f0ee83360db9bcdbe87125ea0648946fedc60cd85dad7a06df64736f6c63430008120033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
