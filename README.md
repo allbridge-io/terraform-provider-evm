@@ -14,7 +14,7 @@ Below is a quick example of how you can add the EVM provider to your Terraform s
 terraform {
   required_providers {
     evm = {
-      source = "terraform.allbridge.io/allbridge/evm"
+      source = "allbridge-io/evm"
     }
   }
 }
@@ -112,7 +112,7 @@ Then create a `.terraformrc` file in your home folder to override EVM provider t
 provider_installation {
 
   dev_overrides {
-      "terraform.allbridge.io/allbridge/evm" = "/path/to/your/go/bin/folder"
+      "allbridge-io/evm" = "/path/to/your/go/bin/folder"
   }
 
   # For all other providers, install them directly from their origin provider
