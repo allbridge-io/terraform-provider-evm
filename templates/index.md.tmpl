@@ -1,0 +1,19 @@
+---
+layout: ""
+page_title: "Provider: EVM"
+description: |-
+  Provides Terraform interface to EVM blockchains
+---
+
+# EVM Provider
+
+Quick way to integrate Ethereum and other EVM blockchains to your deployment. 
+Currently supports generating random deployer accounts, deploying smart contracts and executing transactions on arbitrary smart contracts.
+
+## Example Usage
+
+### Creating an EVM provider
+
+{{ tffile "examples/provider/provider.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}

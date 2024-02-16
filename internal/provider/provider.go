@@ -40,8 +40,8 @@ func (p *EvmProvider) Schema(ctx context.Context, req provider.SchemaRequest, re
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"node_url": schema.StringAttribute{
-				MarkdownDescription: "EVM node URL",
-				Optional:            true,
+				MarkdownDescription: "URL to the EVM node implementing JSON-RPC API",
+				Required:            true,
 			},
 		},
 	}
@@ -76,8 +76,7 @@ func (p *EvmProvider) Configure(ctx context.Context, req provider.ConfigureReque
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to Create EVM RPC Client",
-				"Unexpected error when creating EVM RPC Client.\n\n"+
-					"EVM Client Error: "+err.Error(),
+				"EVM Client Error: "+err.Error(),
 			)
 			return
 		}
@@ -97,13 +96,10 @@ func (p *EvmProvider) Resources(ctx context.Context) []func() resource.Resource 
 }
 
 func (p *EvmProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewContractDataSource,
-	}
+	return []func() datasource.DataSource{}
 }
 
-// TODO: Add client instead of version, pass mock backend here
-func New(client EvmClient) func() provider.Provider {
+func New(_ string, client EvmClient) func() provider.Provider {
 	//backends.NewSimulatedBackend
 	return func() provider.Provider {
 		return &EvmProvider{

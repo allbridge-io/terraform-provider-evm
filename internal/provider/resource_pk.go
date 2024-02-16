@@ -8,8 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -25,23 +23,20 @@ func (*pkResource) Metadata(_ context.Context, req resource.MetadataRequest, res
 
 func (*pkResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Random private key for signing transactions.",
+		MarkdownDescription: "Random private key for signing transactions.",
 		Attributes: map[string]schema.Attribute{
 			"pk": schema.StringAttribute{
-				Description: "The generated random private key.",
-				Computed:    true,
-				Sensitive:   true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				MarkdownDescription: "Generated random private key (32-byte hex value, no `0x` prefix)",
+				Computed:            true,
+				Sensitive:           true,
 			},
 			"pub_key": schema.StringAttribute{
-				Description: "Public key calculated from the provate key.",
-				Computed:    true,
+				MarkdownDescription: "Public key calculated from the private key (64-byte hex value, no `0x` prefix)",
+				Computed:            true,
 			},
 			"address": schema.StringAttribute{
-				Description: "EVM address calculated from the provate key.",
-				Computed:    true,
+				MarkdownDescription: "EVM address calculated from the private key (20-byte hex value, with `0x` prefix). It has mixed case checksum according to [ERC-55](https://eips.ethereum.org/EIPS/eip-55)",
+				Computed:            true,
 			},
 		},
 	}

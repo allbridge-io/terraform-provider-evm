@@ -15,11 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
-const (
-	providerConfig = `provider "evm" {}
-	`
-)
-
 type SimulatedClient struct {
 	b *backends.SimulatedBackend
 }
@@ -113,5 +108,5 @@ func createSimulatedClient() EvmClient {
 }
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"evm": providerserver.NewProtocol6WithError(New(createSimulatedClient())()),
+	"evm": providerserver.NewProtocol6WithError(New("", createSimulatedClient())()),
 }

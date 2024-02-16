@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"terraform-provider-evm/internal/utils"
@@ -15,9 +13,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/txpool"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 func NewContractResource() resource.Resource {
@@ -34,35 +35,26 @@ func (*contractResource) Metadata(_ context.Context, req resource.MetadataReques
 
 func (*contractResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Deployable and configurable Smart Contract resource.",
+		MarkdownDescription: "Resource used to deploy new Smart Contracts.",
 		Attributes: map[string]schema.Attribute{
 			"artifact": schema.StringAttribute{
-				Description: "Content of Hardhat compiled artifact containing ABI and binary.",
-				Required:    true,
-			},
-			"abi": schema.StringAttribute{
-				Description: "ABI for the contract interface.",
-				Computed:    true,
-				Sensitive:   true,
-			},
-			"bin": schema.StringAttribute{
-				Description: "Binary contract code to deploy.",
-				Computed:    true,
-				Sensitive:   true,
+				MarkdownDescription: "Content of Hardhat compiled artifact containing ABI and binary in JSON format",
+				Required:            true,
+				Sensitive:           true,
 			},
 			"signer": schema.StringAttribute{
-				Description: "Deploy transaction signer private key.",
-				Required:    true,
-				Sensitive:   true,
+				MarkdownDescription: "Deploy transaction signer private key (32-byte hex, no `0x` prefix). Can reference `evm_random_pk.pk` resource",
+				Required:            true,
+				Sensitive:           true,
 			},
 			"address": schema.StringAttribute{
-				Description: "Deployed contract address.",
-				Computed:    true,
+				MarkdownDescription: "Deployed contract address, computed after the contract is successfully deployed",
+				Computed:            true,
 			},
 			"constructor_args": schema.ListAttribute{
-				Description: "Contract constructor arguments",
-				ElementType: types.StringType,
-				Optional:    true,
+				MarkdownDescription: "String list of contract constructor arguments. See the list of supported types [here](../../README.md#deployment-and-transaction-args)",
+				ElementType:         types.StringType,
+				Optional:            true,
 			},
 		},
 	}
@@ -89,59 +81,88 @@ func (r *contractResource) Configure(ctx context.Context, req resource.Configure
 }
 
 func (r *contractResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan contractModel
+	r.deployContract(ctx, &req.Plan, &resp.State, &resp.Diagnostics)
+}
 
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+func (*contractResource) Read(context.Context, resource.ReadRequest, *resource.ReadResponse) {
+
+}
+
+func (r *contractResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.deployContract(ctx, &req.Plan, &resp.State, &resp.Diagnostics)
+}
+
+func (*contractResource) Delete(context.Context, resource.DeleteRequest, *resource.DeleteResponse) {
+}
+
+type contractModel struct {
+	Artifact        types.String `tfsdk:"artifact"`
+	Signer          types.String `tfsdk:"signer"`
+	Address         types.String `tfsdk:"address"`
+	ConstructorArgs types.List   `tfsdk:"constructor_args"`
+}
+
+func (r *contractResource) deployContract(ctx context.Context, plan *tfsdk.Plan,
+	state *tfsdk.State, respDiags *diag.Diagnostics) {
+	var model contractModel
+
+	diags := plan.Get(ctx, &model)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
 		return
 	}
 
-	err := plan.parseArtifact()
+	bytecode, err := utils.GetBytecode(model.Artifact.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Unexpected error on parsing artifact", err.Error())
+		respDiags.AddError("Error parsing bytecode", err.Error())
+		return
+	}
+
+	argTypes, err := utils.GetConstructorArgTypes(model.Artifact.ValueString())
+	if err != nil {
+		respDiags.AddError("Error parsing constructor args", err.Error())
+		return
+	}
+
+	abiJson, err := utils.GetAbi(model.Artifact.ValueString())
+	if err != nil {
+		respDiags.AddError("Error parsing abi", err.Error())
 		return
 	}
 
 	chainID, err := r.client.ChainID(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError("Cannot retrieve chain ID", err.Error())
+		respDiags.AddError("Cannot retrieve chain ID", err.Error())
 		return
 	}
 
-	privateKey, err := crypto.HexToECDSA(plan.Signer.ValueString())
+	privateKey, err := crypto.HexToECDSA(model.Signer.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Error decoding signer to private key", err.Error())
+		respDiags.AddError("Error decoding signer to private key", err.Error())
 		return
 	}
 
 	signerAddress, err := utils.PrivateKeyToAddressString(privateKey)
 	if err != nil {
-		resp.Diagnostics.AddError("Error calculating signer address", err.Error())
+		respDiags.AddError("Error calculating signer address", err.Error())
 		return
 	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating signer", err.Error())
+		respDiags.AddError("Error creating signer", err.Error())
 		return
 	}
 
-	bytecode, err := hex.DecodeString(plan.Bin.ValueString())
+	parsedABI, err := abi.JSON(strings.NewReader(abiJson))
 	if err != nil {
-		resp.Diagnostics.AddError("Error decoding bytecode", err.Error())
+		diags.AddError("Unexpected error on parsing ABI", err.Error())
 		return
 	}
 
-	parsedABI, err := abi.JSON(strings.NewReader(plan.ABI.ValueString()))
-	if err != nil {
-		resp.Diagnostics.AddError("Unexpected error on parsing ABI", err.Error())
-		return
-	}
-
-	args, diags := utils.ParseArguments(ctx, parsedABI.Constructor.Inputs, plan.ConstructorArgs)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	args, diags := utils.ParseArguments(ctx, argTypes, model.ConstructorArgs)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
 		return
 	}
 
@@ -149,6 +170,9 @@ func (r *contractResource) Create(ctx context.Context, req resource.CreateReques
 		for {
 			address, tx, _, err := bind.DeployContract(auth, parsedABI, bytecode, r.client, args...)
 			if err != nil && err.Error() == txpool.ErrReplaceUnderpriced.Error() {
+				tflog.Info(ctx,
+					fmt.Sprintf("Got error '%v' from the node, retrying", err),
+				)
 				time.Sleep(1 * time.Second)
 				continue
 			}
@@ -157,77 +181,26 @@ func (r *contractResource) Create(ctx context.Context, req resource.CreateReques
 	}()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Contract deploy error", "Deployer "+signerAddress+"\n"+err.Error())
+		utils.ParseNodeError(signerAddress, err, respDiags)
+		if respDiags.HasError() {
+			return
+		}
+
+		respDiags.AddError(
+			"Deploy error",
+			fmt.Sprintf("Signer %s\n%v", signerAddress, err),
+		)
 		return
 	}
 
 	// Wait until transaction is mined
 	_, err = bind.WaitMined(ctx, r.client, tx)
 	if err != nil {
-		resp.Diagnostics.AddError("Error while waiting for transaction to be mined", err.Error())
+		respDiags.AddError("Error while waiting for transaction to be mined", err.Error())
 		return
 	}
 
-	plan.Address = types.StringValue(address.String())
+	model.Address = types.StringValue(address.String())
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-func (*contractResource) Read(context.Context, resource.ReadRequest, *resource.ReadResponse) {
-
-}
-
-func (*contractResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-
-	var model contractModel
-	var stateModel contractModel
-
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &model)...)
-	resp.Diagnostics.Append(req.State.Get(ctx, &stateModel)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	err := model.parseArtifact()
-
-	if err != nil {
-		resp.Diagnostics.AddError("Unexpected error on parsing artifact", err.Error())
-		return
-	}
-
-	model.Address = stateModel.Address
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
-
-}
-
-func (*contractResource) Delete(context.Context, resource.DeleteRequest, *resource.DeleteResponse) {
-}
-
-type contractModel struct {
-	Artifact        types.String `tfsdk:"artifact"`
-	ABI             types.String `tfsdk:"abi"`
-	Bin             types.String `tfsdk:"bin"`
-	Signer          types.String `tfsdk:"signer"`
-	Address         types.String `tfsdk:"address"`
-	ConstructorArgs types.List   `tfsdk:"constructor_args"`
-}
-
-type artifactModel struct {
-	ABI      json.RawMessage `json:"abi"`
-	Bytecode string          `json:"bytecode"`
-}
-
-func (m *contractModel) parseArtifact() error {
-	var model artifactModel
-	err := json.Unmarshal([]byte(m.Artifact.ValueString()), &model)
-	if err != nil {
-		return err
-	}
-
-	m.ABI = types.StringValue(string(model.ABI))
-	m.Bin = types.StringValue(model.Bytecode[2:])
-
-	return nil
+	respDiags.Append(state.Set(ctx, model)...)
 }

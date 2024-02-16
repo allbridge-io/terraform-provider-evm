@@ -3,21 +3,20 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"terraform-provider-evm/internal/utils"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 func NewContractTxResource() resource.Resource {
@@ -25,7 +24,7 @@ func NewContractTxResource() resource.Resource {
 }
 
 type contractTxResource struct {
-	client *ethclient.Client
+	client EvmClient
 }
 
 func (*contractTxResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -34,33 +33,28 @@ func (*contractTxResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 func (*contractTxResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Deployable and configurable smart contract resource.",
+		Description: "Resource for triggering transactions on deployed smart contracts.",
 		Attributes: map[string]schema.Attribute{
-			"abi": schema.StringAttribute{
-				Description: "ABI for the contract interface.",
-				Required:    true,
-				Sensitive:   true,
-			},
 			"address": schema.StringAttribute{
-				Description: "Contract address to call.",
+				Description: "Blockchain address of the contract to execute transaction on (20-byte hex with `0x` prefix)",
 				Required:    true,
 			},
 			"signer": schema.StringAttribute{
-				Description: "Deploy transaction signer private key.",
+				Description: "Deploy transaction signer private key (32-byte hex, no `0x` prefix). Can reference `evm_random_pk.pk` resource",
 				Required:    true,
 				Sensitive:   true,
 			},
 			"method": schema.StringAttribute{
-				Description: "Contract method to call.",
+				Description: "Contract function to execute, specified as a function name with comma-separated parameter types in brackets (e.g. `transfer(address,uint256)`), see the list of supported types [here](../../README.md#deployment-and-transaction-args)",
 				Required:    true,
 			},
 			"args": schema.ListAttribute{
-				Description: "Method call arguments.",
+				Description: "String list of contract function arguments. See the list of supported types [here](../../README.md#deployment-and-transaction-args)",
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"tx_id": schema.StringAttribute{
-				Description: "Transaction id of submitted transaction.",
+				Description: "Transaction id of submitted transaction, populated after transaction is executed.",
 				Computed:    true,
 			},
 		},
@@ -73,7 +67,7 @@ func (r *contractTxResource) Configure(ctx context.Context, req resource.Configu
 		return
 	}
 
-	client, ok := req.ProviderData.(*ethclient.Client)
+	client, ok := req.ProviderData.(EvmClient)
 
 	if !ok {
 		resp.Diagnostics.AddError(
@@ -88,23 +82,7 @@ func (r *contractTxResource) Configure(ctx context.Context, req resource.Configu
 }
 
 func (r *contractTxResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan contractTxModel
-
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	tx_id, diags := r.prepareAndSendTransaction(ctx, plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	plan.TxId = types.StringValue(tx_id)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	r.prepareAndSendTransaction(ctx, &req.Plan, &resp.State, &resp.Diagnostics)
 }
 
 func (*contractTxResource) Read(context.Context, resource.ReadRequest, *resource.ReadResponse) {
@@ -112,30 +90,13 @@ func (*contractTxResource) Read(context.Context, resource.ReadRequest, *resource
 }
 
 func (r *contractTxResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan contractTxModel
-
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	tx_id, diags := r.prepareAndSendTransaction(ctx, plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	plan.TxId = types.StringValue(tx_id)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	r.prepareAndSendTransaction(ctx, &req.Plan, &resp.State, &resp.Diagnostics)
 }
 
 func (*contractTxResource) Delete(context.Context, resource.DeleteRequest, *resource.DeleteResponse) {
 }
 
 type contractTxModel struct {
-	ABI     types.String `tfsdk:"abi"`
 	Signer  types.String `tfsdk:"signer"`
 	Address types.String `tfsdk:"address"`
 	Method  types.String `tfsdk:"method"`
@@ -143,56 +104,72 @@ type contractTxModel struct {
 	TxId    types.String `tfsdk:"tx_id"`
 }
 
-func (r *contractTxResource) prepareAndSendTransaction(ctx context.Context, plan contractTxModel) (string, diag.Diagnostics) {
+func (r *contractTxResource) prepareAndSendTransaction(ctx context.Context, plan *tfsdk.Plan,
+	state *tfsdk.State, respDiags *diag.Diagnostics) {
 
-	var diags diag.Diagnostics
+	var model contractTxModel
+
+	diags := plan.Get(ctx, &model)
+	respDiags.Append(diags...)
+	if respDiags.HasError() {
+		return
+	}
 
 	chainID, err := r.client.ChainID(ctx)
 	if err != nil {
-		diags.AddError("Cannot retrieve chain ID", err.Error())
-		return "", diags
+		respDiags.AddError("Cannot retrieve chain ID", err.Error())
+		return
 	}
 
-	privateKey, err := crypto.HexToECDSA(plan.Signer.ValueString())
+	privateKey, err := crypto.HexToECDSA(model.Signer.ValueString())
 	if err != nil {
-		diags.AddError("Error decoding signer to private key", err.Error())
-		return "", diags
+		respDiags.AddError("Error decoding signer to private key", err.Error())
+		return
 	}
 
 	signerAddress, err := utils.PrivateKeyToAddressString(privateKey)
 	if err != nil {
-		diags.AddError("Error calculating signer address", err.Error())
-		return "", diags
+		respDiags.AddError("Error calculating signer address", err.Error())
+		return
 	}
 
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
-		diags.AddError("Error creating signer", err.Error())
-		return "", diags
+		respDiags.AddError("Error creating signer", err.Error())
+		return
 	}
 
-	parsedABI, err := abi.JSON(strings.NewReader(plan.ABI.ValueString()))
+	// Method signature in transfer(address,uint256) format
+	methodSignature := model.Method.ValueString()
+	methodName, expectedTypes, err := utils.ExtractNameAndTypes(ctx, methodSignature)
 	if err != nil {
-		diags.AddError("Unexpected error on parsing ABI", err.Error())
-		return "", diags
+		respDiags.AddError("Unexpected error on parsing method signature", err.Error())
+		return
 	}
 
-	method := plan.Method.ValueString()
-
-	args, parseDiags := utils.ParseArguments(ctx, parsedABI.Methods[method].Inputs, plan.Args)
-	diags.Append(parseDiags...)
-	if diags.HasError() {
-		return "", diags
+	fakeABI, err := utils.GenerateFakeABI(ctx, methodName, expectedTypes)
+	if err != nil {
+		respDiags.AddError("Unexpected error on parsing method signature", err.Error())
+		return
 	}
 
-	contractAddress := common.HexToAddress(plan.Address.ValueString())
+	args, parseDiags := utils.ParseArguments(ctx, expectedTypes, model.Args)
+	respDiags.Append(parseDiags...)
+	if respDiags.HasError() {
+		return
+	}
 
-	c := bind.NewBoundContract(contractAddress, parsedABI, r.client, r.client, r.client)
+	contractAddress := common.HexToAddress(model.Address.ValueString())
+
+	c := bind.NewBoundContract(contractAddress, fakeABI, r.client, r.client, r.client)
 
 	tx, err := func() (*ethTypes.Transaction, error) {
 		for {
-			tx, err := c.Transact(auth, method, args...)
+			tx, err := c.Transact(auth, methodName, args...)
 			if err != nil && err.Error() == txpool.ErrReplaceUnderpriced.Error() {
+				tflog.Info(ctx,
+					fmt.Sprintf("Got error '%v' from the node, retrying", err),
+				)
 				time.Sleep(1 * time.Second)
 				continue
 			}
@@ -201,16 +178,26 @@ func (r *contractTxResource) prepareAndSendTransaction(ctx context.Context, plan
 	}()
 
 	if err != nil {
-		diags.AddError("Transaction error", "Signer "+signerAddress+"\n"+err.Error())
-		return "", diags
+		utils.ParseNodeError(signerAddress, err, respDiags)
+		if respDiags.HasError() {
+			return
+		}
+
+		respDiags.AddError(
+			"Transaction error",
+			fmt.Sprintf("Signer %s\n%v", signerAddress, err),
+		)
+		return
 	}
 
 	// Wait until transaction is mined
 	_, err = bind.WaitMined(ctx, r.client, tx)
 	if err != nil {
-		diags.AddError("Error while waiting for transaction to be mined", err.Error())
-		return "", diags
+		respDiags.AddError("Error while waiting for transaction to be mined", err.Error())
+		return
 	}
 
-	return tx.Hash().String(), diags
+	model.TxId = types.StringValue(tx.Hash().String())
+
+	respDiags.Append(state.Set(ctx, model)...)
 }
