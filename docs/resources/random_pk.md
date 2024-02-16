@@ -27,6 +27,6 @@ output "account_address" {
 
 ### Read-Only
 
-- `address` (String) EVM address calculated from the provate key (20-byte hex value, with `0x` prefix). It has mixed case checksum according to [ERC-55](https://eips.ethereum.org/EIPS/eip-55)
+- `address` (String) EVM address calculated from the private key (20-byte hex value, with `0x` prefix). It has mixed case checksum according to [ERC-55](https://eips.ethereum.org/EIPS/eip-55)
 - `pk` (String, Sensitive) Generated random private key (32-byte hex value, no `0x` prefix)
-- `pub_key` (String) Public key calculated from the provate key (64-byte hex value, no `0x` prefix)
+- `pub_key` (String) Public key calculated from the private key (64-byte hex value, no `0x` prefix)

@@ -24,7 +24,8 @@ type EvmClient interface {
 
 // EvmProvider defines the provider implementation.
 type EvmProvider struct {
-	client EvmClient
+	version string
+	client  EvmClient
 }
 
 // EvmProviderModel describes the provider data model.
@@ -37,11 +38,13 @@ func (p *EvmProvider) Metadata(ctx context.Context, req provider.MetadataRequest
 }
 
 func (p *EvmProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+	node_url_optional := p.version == "test"
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"node_url": schema.StringAttribute{
 				MarkdownDescription: "URL to the EVM node implementing JSON-RPC API",
-				Required:            true,
+				Optional:            node_url_optional,
+				Required:            !node_url_optional,
 			},
 		},
 	}
@@ -99,11 +102,12 @@ func (p *EvmProvider) DataSources(ctx context.Context) []func() datasource.DataS
 	return []func() datasource.DataSource{}
 }
 
-func New(_ string, client EvmClient) func() provider.Provider {
+func New(version string, client EvmClient) func() provider.Provider {
 	//backends.NewSimulatedBackend
 	return func() provider.Provider {
 		return &EvmProvider{
-			client: client,
+			version,
+			client,
 		}
 	}
 }
