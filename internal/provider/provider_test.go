@@ -109,5 +109,5 @@ func createSimulatedClient() EvmClient {
 }
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"evm": providerserver.NewProtocol6WithError(New("", createSimulatedClient())()),
+	"evm": providerserver.NewProtocol6WithError(New("test", createSimulatedClient())()),
 }
