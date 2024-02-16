@@ -104,6 +104,7 @@ func createSimulatedClient() EvmClient {
 		faucetAddr: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 	}
 	alloc := core.GenesisAlloc(addr)
+	//nolint:all
 	return SimulatedClient{backends.NewSimulatedBackend(alloc, 9000000)}
 }
 

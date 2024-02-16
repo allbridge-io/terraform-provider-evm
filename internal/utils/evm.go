@@ -164,7 +164,7 @@ func ExtractNameAndTypes(ctx context.Context, methodSignature string) (string, [
 }
 
 var (
-	// typeRegex parses the abi sub types
+	// typeRegex parses the abi sub types.
 	typeRegex       = regexp.MustCompile("([a-zA-Z]+)(([0-9]+)(x([0-9]+))?)?")
 	addressRegex    = regexp.MustCompile("0x[a-fA-F0-9]{40}")
 	sliceArrayRegex = regexp.MustCompile(`((?:[a-zA-Z]+)(?:(?:[0-9]+)(?:x(?:[0-9]+))?)?)\[([0-9]*)\]`)
@@ -244,7 +244,7 @@ func parseArgument(ctx context.Context, expectedType string, value string) (inte
 		var err error
 		varSize, err = strconv.Atoi(parsedType[2])
 		if err != nil {
-			return nil, nil
+			return nil, ErrInvalidType
 		}
 	} else {
 		if parsedType[0] == "uint" || parsedType[0] == "int" {
