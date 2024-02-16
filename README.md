@@ -95,7 +95,7 @@ Use `go generate` to update generated docs.
 
 ## Local Development
 
-To build the EVM provider locally you will need [Go](https://go.dev/doc/install) version 1.19+ installed. To build the provider use:
+To build the EVM provider locally you will need [Go](https://go.dev/doc/install) version 1.20+ installed. To build the provider use:
 
 ```
 go install
