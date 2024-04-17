@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -169,7 +170,7 @@ func (r *contractResource) deployContract(ctx context.Context, plan *tfsdk.Plan,
 	address, tx, err := func() (common.Address, *ethTypes.Transaction, error) {
 		for {
 			address, tx, _, err := bind.DeployContract(auth, parsedABI, bytecode, r.client, args...)
-			if err != nil && err.Error() == txpool.ErrReplaceUnderpriced.Error() {
+			if err != nil && (err.Error() == txpool.ErrReplaceUnderpriced.Error() || strings.HasPrefix(err.Error(), core.ErrNonceTooLow.Error())) {
 				tflog.Info(ctx,
 					fmt.Sprintf("Got error '%v' from the node, retrying", err),
 				)

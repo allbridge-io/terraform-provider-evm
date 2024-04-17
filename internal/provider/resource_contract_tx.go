@@ -3,11 +3,13 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"terraform-provider-evm/internal/utils"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/txpool"
 	ethTypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -166,7 +168,7 @@ func (r *contractTxResource) prepareAndSendTransaction(ctx context.Context, plan
 	tx, err := func() (*ethTypes.Transaction, error) {
 		for {
 			tx, err := c.Transact(auth, methodName, args...)
-			if err != nil && err.Error() == txpool.ErrReplaceUnderpriced.Error() {
+			if err != nil && (err.Error() == txpool.ErrReplaceUnderpriced.Error() || strings.HasPrefix(err.Error(), core.ErrNonceTooLow.Error())) {
 				tflog.Info(ctx,
 					fmt.Sprintf("Got error '%v' from the node, retrying", err),
 				)
