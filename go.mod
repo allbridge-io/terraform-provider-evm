@@ -31,9 +31,9 @@ require (
 	github.com/hashicorp/cli v1.1.6 // indirect
 	github.com/hashicorp/go-bexpr v0.1.10 // indirect
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320 // indirect
-	github.com/hashicorp/hcl/v2 v2.19.1 // indirect
+	github.com/hashicorp/hcl/v2 v2.20.1 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.30.0 // indirect
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.33.0 // indirect
 	github.com/holiman/billy v0.0.0-20230718173358-1c7e68d277a7 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
@@ -69,7 +69,7 @@ require (
 require (
 	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
+	github.com/ProtonMail/go-crypto v1.1.0-alpha.2 // indirect
 	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -93,23 +93,23 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-hclog v1.6.2 // indirect
+	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.6.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/hashicorp/hc-install v0.6.2 // indirect
-	github.com/hashicorp/terraform-exec v0.20.0 // indirect
-	github.com/hashicorp/terraform-json v0.21.0 // indirect
-	github.com/hashicorp/terraform-plugin-go v0.21.0
-	github.com/hashicorp/terraform-plugin-testing v1.6.0
+	github.com/hashicorp/hc-install v0.6.4 // indirect
+	github.com/hashicorp/terraform-exec v0.21.0 // indirect
+	github.com/hashicorp/terraform-json v0.22.1 // indirect
+	github.com/hashicorp/terraform-plugin-go v0.23.0
+	github.com/hashicorp/terraform-plugin-testing v1.8.0
 	github.com/hashicorp/terraform-registry-address v0.2.3 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
@@ -141,17 +141,17 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/zclconf/go-cty v1.14.1 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
+	github.com/zclconf/go-cty v1.14.4 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
-	golang.org/x/mod v0.15.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/mod v0.16.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240213162025-012b6fc9bca9 // indirect
-	google.golang.org/grpc v1.61.1 // indirect
-	google.golang.org/protobuf v1.32.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240227224415-6ceb2ff114de // indirect
+	google.golang.org/grpc v1.63.2 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
